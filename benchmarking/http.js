@@ -10,12 +10,15 @@ const ruleCount = Number(__ENV.RULE_COUNT || 100000);
 const vus = Number(__ENV.VUS || 1);
 const seconds = Number(__ENV.SECONDS || 30);
 const warmup = Number(__ENV.WARMUP || 0);
+const run = Number(__ENV.RUN || 1);
+const runs = Number(__ENV.RUNS || 1);
 if (!['component', 'end-to-end'].includes(target) || !['baseline', 'optimized'].includes(implementation) ||
     !Number.isInteger(ruleCount) || ruleCount < 1 || ruleCount > 1000000 ||
     !Number.isInteger(vus) || vus < 1 || vus > 128 ||
     !Number.isInteger(seconds) || seconds < 1 || seconds > 300 ||
-    !Number.isInteger(warmup) || warmup < 0 || warmup > 60) {
-  throw new Error('Use TARGET=component|end-to-end, IMPL=baseline|optimized, RULE_COUNT=1..1000000, VUS=1..128, SECONDS=1..300, WARMUP=0..60');
+    !Number.isInteger(warmup) || warmup < 0 || warmup > 60 ||
+    !Number.isInteger(run) || !Number.isInteger(runs) || run < 1 || run > runs || runs > 20) {
+  throw new Error('Use TARGET=component|end-to-end, IMPL=baseline|optimized, RULE_COUNT=1..1000000, VUS=1..128, SECONDS=1..300, WARMUP=0..60, RUN=1..RUNS, RUNS=1..20');
 }
 export const options = {
   scenarios: { experiment: { executor: 'constant-vus', vus, duration: `${seconds + warmup}s`, gracefulStop: '10s' } },
@@ -38,7 +41,7 @@ const payload = JSON.stringify(target === 'component' ? { input, ruleCount, impl
   items: input.items.map(item => ({ sku: item.sku, quantity: item.quantity })), ruleCount, implementation,
 });
 const tags = {
-  target, implementation, rule_count: String(ruleCount), input_id: 'risk-rules-v1',
+  target, implementation, run: String(run), runs: String(runs), rule_count: String(ruleCount), input_id: 'risk-rules-v1',
   operation: target === 'component' ? 'risk-evaluation' : 'risk-preview', timing: 'http-duration-ms',
   vus: String(vus), seconds: String(seconds), warmup: String(warmup),
 };

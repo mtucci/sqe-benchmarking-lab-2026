@@ -6,7 +6,7 @@ In this lab, you will measure the same risk-scoring function in three ways:
 - **Component benchmark:** send requests to the risk service with k6.
 - **End-to-end benchmark:** send requests through the complete application with k6.
 
-Run the supplied experiments, change their parameters, and use the dashboard to compare results. You do not need to write benchmark code or submit any work.
+Each implementation has five JVM forks or five separately prepared HTTP runs. Run the supplied experiments, change their parameters, and use the dashboard to compare results. You do not need to write benchmark code or submit any work.
 
 ## Start the lab
 
@@ -34,7 +34,7 @@ The application is a small online shop split into five services. It reads prices
 
 The baseline implementation scans every risk rule. The optimized implementation selects rules for the shipping country first. Both return the same answer. At 100000 rules across 20 countries, a DE order has 5000 relevant rules.
 
-Compare baseline and optimized runs at the same rule count and client count. Inspect distributions, time series and warm-up behaviour. Does the improvement in the function produce the same improvement in the complete request?
+Compare baseline and optimized runs at the same rule count and client count. Inspect distributions, time series and warm-up behaviour. Confidence intervals and tests use all individual samples retained after removing warm-up separately from each run/fork, assuming sample independence. Does the improvement in the function produce the same improvement in the complete request?
 
 ## Explore the code
 

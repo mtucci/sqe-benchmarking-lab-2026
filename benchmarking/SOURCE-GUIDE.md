@@ -9,8 +9,9 @@ The same `RiskScorer.evaluate` method is included in every benchmark. Begin with
 | [RiskEvaluationApi.java](../toy-example-sqe/risk-processing-service/src/main/java/com/example/orderrisk/processing/RiskEvaluationApi.java) | The component endpoint `POST /risk-evaluations` accepts a complete order/profile and calls the scorer. |
 | [ApiController.java](../toy-example-sqe/gateway-service/src/main/java/com/example/orderrisk/gateway/ApiController.java) | The end-to-end entry point `POST /api/risk-previews` forwards the request to the workflow service. |
 | [OrderWorkflow.java](../toy-example-sqe/workflow-service/src/main/java/com/example/orderrisk/workflow/OrderWorkflow.java) | `riskPreview` reads prices, history and profile data, then calls the risk service and waits for the result. |
-| [http.js](http.js) | Supplied k6 scenario, virtual users, parameters, response validation and latency samples for both HTTP boundaries. |
-| [analyze.py](analyze.py) | Raw sample loading, warm-up selection, descriptive/inferential statistics and comparison plots. |
+| [http.js](http.js) | One supplied k6 run: virtual users, run ID/count, response validation and latency samples for both HTTP boundaries. The exercise loop performs five runs per implementation. |
+| [analyze.py](analyze.py) | Raw sample loading, per-run warm-up selection, pooled retained-sample statistics and inference and comparison plots. |
+| [reset-services.sh](container/reset-services.sh) | Restart the five service JVMs before each HTTP run and wait for readiness; preserve saved experiment files. |
 | [results_server.py](container/results_server.py) | The dashboard's experiment list, analysis actions and saved reports. |
 
 A rule adds points when its conditions match. The score is earned points as a percentage of possible points for the shipping country. The country index is prepared before measurement and reused; each order is still scored anew. Increasing `ruleCount` changes the rule collection and may change the score, so implementation comparisons keep it fixed.

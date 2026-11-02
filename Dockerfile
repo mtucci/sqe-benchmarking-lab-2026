@@ -21,7 +21,7 @@ COPY --from=build /build/workflow-service/target/app.jar /opt/sqe/workflow.jar
 COPY --from=build /build/gateway-service/target/app.jar /opt/sqe/gateway.jar
 COPY --from=build /build/risk-processing-service/target/app.jar /opt/sqe/risk.jar
 # Lab runtime files.
-COPY benchmarking/container/start.sh benchmarking/container/run-service.sh benchmarking/container/healthcheck.py benchmarking/container/results_server.py benchmarking/container/supervisord.conf /opt/lab/
+COPY benchmarking/container/start.sh benchmarking/container/run-service.sh benchmarking/container/healthcheck.py benchmarking/container/results_server.py benchmarking/container/supervisord.conf benchmarking/container/reset-services.sh /opt/lab/
 COPY benchmarking/analyze.py benchmarking/http.js /lab/
 COPY benchmarking/README.md benchmarking/benchmark-scopes.puml /lab/
 COPY benchmarking/benchmark-architecture.puml /lab/
@@ -29,8 +29,9 @@ COPY toy-example-sqe/risk-processing-service/src/main/java/com/example/orderrisk
 COPY toy-example-sqe/benchmark-tools/src/main/java/com/example/orderrisk/benchmark/RiskScorerBenchmark.java /lab/source/RiskScorerBenchmark.java
 COPY toy-example-sqe/risk-processing-service/src/main/java/com/example/orderrisk/processing/RiskEvaluationApi.java /lab/source/RiskEvaluationApi.java
 COPY toy-example-sqe/workflow-service/src/main/java/com/example/orderrisk/workflow/OrderWorkflow.java /lab/source/OrderWorkflow.java
-RUN chmod +x /opt/lab/start.sh /opt/lab/run-service.sh /opt/lab/healthcheck.py \
+RUN chmod +x /opt/lab/start.sh /opt/lab/run-service.sh /opt/lab/healthcheck.py /opt/lab/reset-services.sh \
     && ln -s /opt/lab/healthcheck.py /usr/local/bin/lab-ready \
+    && ln -s /opt/lab/reset-services.sh /usr/local/bin/lab-reset \
     && ln -s /opt/sqe/benchmarks.jar /lab/benchmarks.jar \
     && ln -s data/results /lab/results && ln -s data/analysis /lab/analysis \
     && mkdir -p /var/log/lab \

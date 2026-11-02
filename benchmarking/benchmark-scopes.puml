@@ -1,5 +1,4 @@
 @startuml
- title One risk function, three benchmark levels
  hide footbox
  skinparam sequenceMessageAlign center
 
@@ -7,7 +6,7 @@
  participant k6
  participant Gateway
  participant Workflow
- participant "Pricing + order services\n(data lookups)" as Data
+ participant "Pricing + order services\n(data lookups, simplified)" as Data
  participant "Risk service\n(service JVM)" as Risk
 
  == Microbenchmark: one timed invocation ==
@@ -29,9 +28,4 @@
  Workflow --> Gateway: Quote + risk evaluation
  Gateway --> k6: Quote + risk evaluation
 
- legend bottom
-   Same function code, order and rule collection at all three levels.
-   ruleCount selects the catalog size; its country index is prepared before timing.
-   implementation = baseline or optimized
- endlegend
 @enduml

@@ -108,6 +108,41 @@ class DashboardTests(unittest.TestCase):
             self.post('/reanalyze',{'report':str(comparison.relative_to(self.root)),'cutoff':'0'})
         self.assertEqual(error.exception.code,400)
 
+    def test_http_directories_are_single_experiments_with_replicated_inference(self):
+        from test_replication import write_http_experiment
+        first = write_http_experiment(self.root/'results', 'component-baseline')
+        second = write_http_experiment(self.root/'results', 'component-optimized', means=(5, 7, 9, 11, 13))
+        page = urlopen(self.url).read().decode()
+        self.assertIn('5/5 run files', page)
+        self.assertIn('value="results/component-baseline"', page)
+        self.assertNotIn('value="results/component-baseline/run-1.json"', page)
+        response = self.post('/analyze', {'experiment': ['results/component-baseline', 'results/component-optimized']})
+        report = self.root/response.url.split(self.url+'/')[1].removesuffix('/index.html')
+        self.post('/reanalyze', {'report': str(report.relative_to(self.root)), 'cutoff': '1'}).read()
+        data = json.loads((report/'stats.json').read_text())
+        self.assertEqual([item['inference_n'] for item in data['experiments']], [15, 15])
+        self.assertEqual([item['replicate_count'] for item in data['experiments']], [5, 5])
+        self.assertTrue(all(item['mean_ci95'] for item in data['experiments']))
+        self.assertIsNotNone(data['comparisons'][0]['welch_p'])
+        self.assertTrue((report/'replicates.csv').is_file())
+        self.assertIn('Run / fork summaries', (report/'index.html').read_text())
+        self.post('/delete-experiments', {'experiment': 'results/component-baseline'}).read()
+        self.assertFalse(first.exists())
+        self.assertTrue(second.exists())
+        self.assertTrue(report.exists())
+        with self.assertRaises(HTTPError):
+            self.post('/reanalyze', {'report': str(report.relative_to(self.root)), 'cutoff': '0'})
+
+    def test_incomplete_http_directory_has_no_partial_analysis(self):
+        from test_replication import write_http_experiment
+        path = write_http_experiment(self.root/'results', 'incomplete-baseline')
+        (path/'run-5.json').unlink()
+        self.assertIn('4/5 run files', urlopen(self.url).read().decode())
+        with self.assertRaises(HTTPError) as error:
+            self.post('/analyze', {'experiment': 'results/incomplete-baseline'})
+        self.assertIn('Incomplete', error.exception.read().decode())
+        self.assertEqual(list((self.root/'analysis').iterdir()), [])
+
     def test_incompatible_comparison_does_not_leave_a_report(self):
         with self.assertRaises(HTTPError) as error:
             self.post('/analyze',{'experiment':['results/A.json','results/other.json']})

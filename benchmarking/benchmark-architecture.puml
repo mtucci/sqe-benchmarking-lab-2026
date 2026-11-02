@@ -1,5 +1,4 @@
 @startuml
-title Toy example: components and benchmark entry points
 top to bottom direction
 skinparam componentStyle rectangle
 skinparam shadowing false

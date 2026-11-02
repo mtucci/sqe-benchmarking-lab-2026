@@ -241,20 +241,21 @@ class AnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(s['mean'], 160/3)
         self.assertEqual(s['failure_fraction'], .25)
         self.assertEqual(s['successful_ops_per_s'], 3/15)
-        self.assertIsNone(s['mean_ci95'])
+        self.assertIsNotNone(s['mean_ci95'])
         self.assertEqual(len(d['series']), 4)
         with self.assertRaises(ValueError):
             a.select_samples(d, 15)
 
-    def test_tests_are_not_assigned_to_dependent_requests(self):
+    def test_http_tests_use_samples_with_explicit_independence_assumption(self):
         x, y = self.http(), self.http()
         y['label'] = 'B'
         for d in (x, y):
             a.select_samples(d, 0)
         pair = a.comparisons([x, y])[0]
-        self.assertIsNone(pair['welch_p'])
-        self.assertIsNone(pair['mann_whitney_p'])
-        self.assertIn('dependent HTTP', a.conclusions([a.summary_stats(x), a.summary_stats(y)], [pair])[0]['rows'][5]['interpretation'])
+        self.assertAlmostEqual(pair['welch_p'], 1.)
+        self.assertAlmostEqual(pair['mann_whitney_p'], 1.)
+        rows = a.conclusions([a.summary_stats(x), a.summary_stats(y)], [pair])[0]['rows']
+        self.assertIn('assuming independence', next(row['interpretation'] for row in rows if row['method'] == 'Welch two-sample t-test'))
 
     def test_speedup_is_distinct_from_time_reduction(self):
         x, y = self.jmh(forks=((2., 2.), (2., 2.))), self.jmh('B', ((1., 1.), (1., 1.)))
@@ -264,7 +265,7 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(pair['time_ratio_a_over_b'], 2.)
         self.assertEqual(pair['time_reduction_percent'], 50.)
         rows = a.conclusions([a.summary_stats(x), a.summary_stats(y)], [pair])[0]['rows']
-        self.assertIn('50% less', rows[3]['interpretation'])
+        self.assertIn('50% less', next(row['interpretation'] for row in rows if row['method'] == 'Speedup (mean ratio A/B)'))
 
     def test_all_failed_requests_and_comparison_plot_order(self):
         x, y = self.http(), self.http()

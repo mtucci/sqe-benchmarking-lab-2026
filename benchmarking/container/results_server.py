@@ -19,12 +19,25 @@ ANALYSIS_LOCK = threading.Lock()
 
 
 def timestamp(path):
-    return datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat(timespec='seconds')
+    modified = max((item.stat().st_mtime for item in path.glob('run-*.json')), default=path.stat().st_mtime) if path.is_dir() else path.stat().st_mtime
+    return datetime.fromtimestamp(modified, timezone.utc).isoformat(timespec='seconds')
 
 
 def experiment_description(path):
     """Read just enough metadata to label a run; the analyzer validates the full export."""
     try:
+        if path.is_dir():
+            runs = sorted(path.glob('run-*.json'))
+            if not runs:
+                return 'No HTTP run exports found'
+            expected = '?'
+            with runs[0].open(encoding='utf-8') as stream:
+                for line in stream:
+                    point = json.loads(line)
+                    if point.get('type') == 'Point' and point.get('metric') == 'operation_ms':
+                        expected = point['data']['tags'].get('runs', 1)
+                        break
+            return f'{len(runs)}/{expected} run files · ' + experiment_description(runs[0])
         with path.open(encoding='utf-8') as stream:
             first = next((line for line in stream if line.strip()), '')
             stream.seek(0)
@@ -61,6 +74,10 @@ class Handler(SimpleHTTPRequestHandler):
         if report:
             if not path.is_dir() or not (path / 'index.html').is_file() or not (path / 'stats.json').is_file():
                 raise ValueError('Analysis report not found.')
+        elif path.is_dir():
+            runs = list(path.glob('run-*.json'))
+            if not runs or any(not run.is_file() or not run.resolve().is_relative_to(path) for run in runs):
+                raise ValueError('Choose an experiment directory containing local run-*.json exports.')
         elif not path.is_file() or path.suffix != '.json':
             raise ValueError('The raw experiment JSON file was not found in results/.')
         return path
@@ -109,7 +126,8 @@ class Handler(SimpleHTTPRequestHandler):
                 files = list(dict.fromkeys(self.data_path(v, 'results') for v in values))
                 if self.path == '/delete-experiments':
                     for file in files:
-                        file.unlink()
+                        if not any(parent in file.parents for parent in files):
+                            shutil.rmtree(file) if file.is_dir() else file.unlink()
                     return self.redirect()
                 if len(files) > 8:
                     raise ValueError('Compare at most eight experiments at a time.')
@@ -143,11 +161,15 @@ class Handler(SimpleHTTPRequestHandler):
         root = Path(self.directory).resolve()
         def esc(value):
             return html.escape(str(value), quote=True)
-        experiments = sorted((root / 'results').rglob('*.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+        raw = list((root / 'results').rglob('*.json'))
+        directories = {path.parent for path in raw if path.name.startswith('run-')}
+        experiments = sorted(directories | {path for path in raw if not any(parent in path.parents for parent in directories)}, key=timestamp, reverse=True)
         rows = []
         for path in experiments:
             # Do not offer symlinks outside the results directory as dashboard actions.
-            if not path.resolve().is_relative_to((root / 'results').resolve()):
+            try:
+                self.data_path(str(path), 'results')
+            except ValueError:
                 continue
             value = esc(path.relative_to(root).as_posix())
             label = esc(path.relative_to(root / 'results'))
@@ -185,7 +207,7 @@ class Handler(SimpleHTTPRequestHandler):
 th{{background:#f1f4f8}}button{{font:inherit;padding:7px 10px;cursor:pointer}}form{{margin:0}}small{{color:#536174}}td{{overflow-wrap:anywhere}}time{{font-size:14px}}.actions{{display:flex;flex-wrap:wrap;gap:12px;margin:15px 0}}</style>
 <h1>Benchmark results</h1><p>Run experiments in the container shell, then refresh. Let runs finish before analyzing them. All dates and times are UTC; “result saved” is the raw file’s last modification time.</p>
 <p><a href="/">Refresh</a> · <a href="/results/">Raw experiment files</a></p>
-<h2>Experiments</h2><p>Analyze one run, or check compatible runs of the same operation and compare them. New analyses start with warm-up cutoff 0.</p>
+<h2>Experiments</h2><p>Analyze one run, or check compatible runs of the same operation and compare them. Each HTTP directory is one experiment containing repeated runs. Analyze it after all runs finish. New analyses start with warm-up cutoff 0.</p>
 <form id="experiments" method="post" action="/analyze"></form>
 <div class="actions"><button id="select-experiments" type="button">Select all experiments</button><button id="compare" form="experiments" disabled>Compare selected</button>
 <button id="remove" form="experiments" disabled formaction="/delete-experiments" onclick="return confirm('Remove the selected raw experiment files? Saved analyses remain viewable, but updating them requires these files.')">Remove selected experiments</button></div>
