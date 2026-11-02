@@ -10,7 +10,7 @@ In your **host terminal** (PowerShell works too):
 
 ```sh
 docker pull mtucci/sqe-benchmarking-lab:2026
-docker run -d --name sqe-lab --cpus=2 --memory=3g -p 127.0.0.1:8080:8090 -v sqe-lab-data:/lab/data mtucci/sqe-benchmarking-lab:2026
+docker run -d --name sqe-lab --cpus=2 --memory=3g -p 127.0.0.1:8080:8080 -p 127.0.0.1:8081:8090 -v sqe-lab-data:/lab/data mtucci/sqe-benchmarking-lab:2026
 docker exec -it sqe-lab bash
 ```
 
@@ -21,7 +21,7 @@ lab-ready
 RUN_ID="$(date -u +%Y%m%dT%H%M%S)-${RANDOM}"
 ```
 
-This waits for startup. Open **http://localhost:8080** in your host browser. It lists saved experiments and analyses with UTC dates and times. Refresh after runs finish. Click **Analyze** for one experiment, or check compatible experiments and click **Compare selected**. Each HTTP experiment is one directory of five run files; the dashboard lists the directory once. Wait for all five runs to finish. Use **Select all experiments** or **Select all analyses** to select a whole list; click the same control again to clear it. Use the remove buttons to delete the selected files or reports. Removing an experiment keeps its existing analyses viewable, but their warm-up controls need the raw file. Removing an analysis keeps its experiments. Raw results and analyses persist in the named Docker volume. No package installation or internet access is needed inside the running image.
+This waits for startup. The application is available at **http://localhost:8080**. Open the analysis dashboard at **http://localhost:8081** in your host browser. It lists saved experiments and analyses with UTC dates and times. Refresh after runs finish. Click **Analyze** for one experiment, or check compatible experiments and click **Compare selected**. Each HTTP experiment is one directory of five run files; the dashboard lists the directory once. Wait for all five runs to finish. Use **Select all experiments** or **Select all analyses** to select a whole list; click the same control again to clear it. Use the remove buttons to delete the selected files or reports. Removing an experiment keeps its existing analyses viewable, but their warm-up controls need the raw file. Removing an analysis keeps its experiments. Raw results and analyses persist in the named Docker volume. No package installation or internet access is needed inside the running image.
 
 The same `RiskScorer.evaluate` function runs at every level:
 
@@ -106,4 +106,4 @@ Leave the container shell with `exit`. Back in your **host terminal**:
 docker stop sqe-lab
 ```
 
-Resume later with `docker start sqe-lab` and `docker exec -it sqe-lab bash`. If port 8080 is occupied, use `-p 127.0.0.1:8085:8090` when creating the container and browse port 8085. Logs inside the container are in `/var/log/lab/`.
+Resume later with `docker start sqe-lab` and `docker exec -it sqe-lab bash`. If dashboard port 8081 is occupied, replace its mapping with `-p 127.0.0.1:8085:8090` and browse port 8085. If application port 8080 is occupied, replace its mapping with `-p 127.0.0.1:8086:8080` and browse port 8086. Logs inside the container are in `/var/log/lab/`.

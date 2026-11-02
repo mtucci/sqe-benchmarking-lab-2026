@@ -35,7 +35,7 @@ RUN chmod +x /opt/lab/start.sh /opt/lab/run-service.sh /opt/lab/healthcheck.py /
     && ln -s /opt/sqe/benchmarks.jar /lab/benchmarks.jar \
     && ln -s data/results /lab/results && ln -s data/analysis /lab/analysis \
     && mkdir -p /var/log/lab \
-    && printf '\ncd /lab\necho "Lab shell. Run lab-ready, then follow README.md. Results: http://localhost:8080"\n' >> /root/.bashrc
+    && printf '\ncd /lab\necho "Lab shell. Run lab-ready, then follow README.md. Results: http://localhost:8081"\n' >> /root/.bashrc
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/matplotlib \
     TRACING_ENABLED=false SERVER_MAX_THREADS=32 \
     PRICING_BASE_URL=http://127.0.0.1:8084 ORDER_BASE_URL=http://127.0.0.1:8081 \
@@ -45,7 +45,7 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 MPLCONFIGDIR=/tmp/matplotlib \
     PRICING_WORKERS=2 PRICING_DELAY_MS=20 PRICING_QUEUE=50
 WORKDIR /lab
 VOLUME ["/lab/data"]
-EXPOSE 8090
+EXPOSE 8080 8090
 HEALTHCHECK --interval=5s --timeout=5s --start-period=90s --retries=6 \
     CMD python3 /opt/lab/healthcheck.py --timeout 0 --services-only
 ENTRYPOINT ["/usr/bin/tini", "--", "/opt/lab/start.sh"]

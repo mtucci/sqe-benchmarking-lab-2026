@@ -40,7 +40,7 @@ if __name__ == '__main__':
     while True:
         try:
             check(business=not args.services_only)
-            print('Ready. Run benchmarks in /lab; view analyses at http://localhost:8080')
+            print('Ready. Run benchmarks in /lab; view analyses at http://localhost:8081')
             break
         except (OSError, ValueError, KeyError) as error:
             if time.monotonic() >= deadline:

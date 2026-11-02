@@ -14,7 +14,7 @@ You need **Docker and a browser**. On Windows/macOS, use Docker Desktop with Lin
 
 ```sh
 docker pull mtucci/sqe-benchmarking-lab:2026
-docker run -d --name sqe-lab --cpus=2 --memory=3g -p 127.0.0.1:8080:8090 -v sqe-lab-data:/lab/data mtucci/sqe-benchmarking-lab:2026
+docker run -d --name sqe-lab --cpus=2 --memory=3g -p 127.0.0.1:8080:8080 -p 127.0.0.1:8081:8090 -v sqe-lab-data:/lab/data mtucci/sqe-benchmarking-lab:2026
 docker exec -it sqe-lab bash
 ```
 
@@ -24,7 +24,7 @@ Inside the container, run:
 lab-ready
 ```
 
-Open **http://localhost:8080** in your browser. Then follow the [benchmarking exercises](benchmarking/README.md) to run the experiments and analyze your results. All benchmark commands run inside the container shell, on Windows, Linux and macOS. Java, JMH, k6, Python and the application services are already installed.
+Open the application at **http://localhost:8080** and the analysis dashboard at **http://localhost:8081** in your browser. Then follow the [benchmarking exercises](benchmarking/README.md) to run the experiments and analyze your results. All benchmark commands run inside the container shell, on Windows, Linux and macOS. Java, JMH, k6, Python and the application services are already installed.
 
 Results are saved in the `sqe-lab-data` volume. When you finish, leave the container shell with `exit`, then run `docker stop sqe-lab` in your host terminal. You can resume with `docker start sqe-lab` and `docker exec -it sqe-lab bash`.
 
