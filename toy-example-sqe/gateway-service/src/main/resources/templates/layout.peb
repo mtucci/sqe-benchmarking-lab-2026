@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Order Risk Back-Office{% endblock %}</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+    <a class="brand" href="/">Order Risk Back-Office</a>
+    <nav>
+        <a href="/orders">Orders</a>
+        <a href="/quote">Price quote</a>
+        <a href="/orders/new">Submit order</a>
+    </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>Teaching system &middot; no payments, no inventory, no real fraud detection</footer>
+</body>
+</html>

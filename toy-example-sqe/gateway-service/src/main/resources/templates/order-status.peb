@@ -1,0 +1,28 @@
+{% extends "layout" %}
+{% block title %}Order #{{ order.id }} status{% endblock %}
+{% block content %}
+<h1>Risk analysis of order #{{ order.id }}</h1>
+
+<p class="big"><span class="status {{ order.status | lower }}">{{ order.status }}</span></p>
+{% if order.statusReason is not null %}<p class="error">{{ order.statusReason }}</p>{% endif %}
+
+{% if order.status == "SUBMITTED" or order.status == "QUEUED" or order.status == "PROCESSING" %}
+<p>The analysis runs in the background. <a class="button" href="/orders/{{ order.id }}/status">Refresh</a></p>
+{% endif %}
+
+<dl>
+    <dt>Customer</dt><dd>{{ order.customerId }}</dd>
+    <dt>Submitted (UTC)</dt><dd>{{ order.createdAt }}</dd>
+    <dt>Last change (UTC)</dt><dd>{{ order.updatedAt }}</dd>
+    {% if order.riskResult is not null %}
+    <dt>Risk score</dt><dd>{{ order.riskResult.score | numberformat("0.00") }} / 100</dd>
+    <dt>Risk category</dt><dd><span class="risk {{ order.riskResult.category | lower }}">{{ order.riskResult.category }}</span></dd>
+    <dt>Total amount</dt><dd>{{ order.totalAmount | numberformat("#,##0.00") }}</dd>
+    {% endif %}
+</dl>
+
+<p><a href="/orders/{{ order.id }}">Order details</a> &middot; <a href="/orders">All orders</a></p>
+
+<p class="muted">States: SUBMITTED (stored) &rarr; QUEUED (message in RabbitMQ) &rarr; PROCESSING (worker started)
+    &rarr; COMPLETED, or FAILED (error during analysis / publication), or REJECTED (processing capacity exceeded).</p>
+{% endblock %}

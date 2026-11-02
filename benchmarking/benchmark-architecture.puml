@@ -1,0 +1,49 @@
+@startuml
+title Toy example: components and benchmark entry points
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 15
+skinparam ArrowFontSize 13
+skinparam packageStyle rectangle
+skinparam componentBorderColor #555555
+skinparam ArrowColor #555555
+
+component "k6\nHTTP benchmark client" as K6 #FFF0D9
+
+package "Toy application (five services)" {
+  component "Gateway\nExternal API" as Gateway
+  component "Workflow\nCoordinates requests" as Workflow
+  component "Pricing / profile\nPrices and customer facts" as Pricing
+  component "Order\nOrders and history" as Orders
+  component "Risk processing\nRiskScorer.evaluate(...)" as Risk #E8F4E8
+  database "H2\nStored orders" as DB
+  queue "RabbitMQ\nOrder-analysis jobs" as Broker
+}
+
+package "JMH forked JVM" {
+  component "JMH benchmark" as JMH #EDE6F5
+  component "RiskScorer.evaluate(...)\nSame Java code, local invocation" as LocalScorer #E8F4E8
+}
+
+K6 -[#1565C0,thickness=3]-> Gateway : End-to-end entry\nPOST /api/risk-previews
+K6 -[#D26900,thickness=3]-> Risk : Component entry\nPOST /risk-evaluations
+Gateway -[#1565C0,thickness=2]-> Workflow : HTTP
+Workflow -[#1565C0,thickness=2]down-> Pricing : Prices + profile
+Workflow -[#1565C0,thickness=2]down-> Orders : Order history
+Workflow -[#1565C0,thickness=2]right-> Risk : HTTP risk evaluation
+Orders -down-> DB : Read / write
+
+Workflow -[#888888,dashed]down-> Broker : Publish job
+Broker -[#888888,dashed]-> Risk : Deliver job
+
+JMH -[#7030A0,thickness=3]-> LocalScorer : Microbenchmark entry\nOne method call
+
+legend bottom
+  Blue: synchronous end-to-end risk preview (waits for the result).
+  Orange: direct component request. Purple: local JMH invocation.
+  Dashed grey: background order processing (outside our timed preview).
+  Main dependencies shown; other calls and observability tools omitted.
+  Arrows show calls or message flow, not responses.
+endlegend
+@enduml

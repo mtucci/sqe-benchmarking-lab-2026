@@ -1,0 +1,15 @@
+**/.git
+**/target
+**/__pycache__
+**/.venv
+**/*.pyc
+**/.env
+**/.env.*
+**/data
+**/results
+**/analysis
+**/*.log
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store

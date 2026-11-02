@@ -1,0 +1,37 @@
+{% extends "layout" %}
+{% block title %}Price quote{% endblock %}
+{% block content %}
+<h1>Price quote</h1>
+<p>Use Case 2 (synchronous). The workflow service fetches price snapshots and the customer's order history and
+    returns the complete quote in the same response.</p>
+{% if error is not null %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/quote">
+    <label>Customer id <input name="customerId" value="{{ form.customerId | default("C-1001") }}" required></label>
+    {% include "items-form" %}
+    <button type="submit">Get quote</button>
+</form>
+
+{% if quote is not null %}
+<h2>Quote for {{ quote.customerId }}</h2>
+<table>
+    <thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead>
+    <tbody>
+    {% for line in quote.lines %}
+    <tr>
+        <td>{{ line.sku }}</td><td>{{ line.name }}</td><td>{{ line.category }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.unitPrice | numberformat("#,##0.00") }}</td>
+        <td class="num">{{ line.lineTotal | numberformat("#,##0.00") }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+    <tr><td colspan="5">Subtotal</td><td class="num">{{ quote.subtotal | numberformat("#,##0.00") }}</td></tr>
+    <tr><td colspan="5">Loyalty discount ({{ quote.discountPercent }}%)</td><td class="num">-{{ quote.discount | numberformat("#,##0.00") }}</td></tr>
+    <tr class="total"><td colspan="5">Total</td><td class="num">{{ quote.total | numberformat("#,##0.00") }}</td></tr>
+    </tfoot>
+</table>
+<p class="muted">Price list {{ quote.priceListVersion }} &middot; customer history: {{ quote.customerHistory.orderCount }} orders,
+    {{ quote.customerHistory.completedOrders }} completed, {{ quote.customerHistory.highRiskOrders }} high risk.</p>
+{% endif %}
+{% endblock %}

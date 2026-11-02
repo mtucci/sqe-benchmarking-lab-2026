@@ -1,0 +1,28 @@
+{% extends "layout" %}
+{% block title %}Orders{% endblock %}
+{% block content %}
+<h1>Orders</h1>
+<p>The 50 most recent orders. <a class="button" href="/orders/new">Submit a new order</a></p>
+{% if orders is empty %}
+<p class="muted">No orders yet.</p>
+{% else %}
+<table>
+    <thead>
+    <tr><th>Id</th><th>Customer</th><th>Status</th><th>Total</th><th>Risk</th><th>Created (UTC)</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for o in orders %}
+    <tr>
+        <td><a href="/orders/{{ o.id }}">#{{ o.id }}</a></td>
+        <td>{{ o.customerId }}</td>
+        <td><span class="status {{ o.status | lower }}">{{ o.status }}</span></td>
+        <td class="num">{% if o.totalAmount is not null %}{{ o.totalAmount | numberformat("#,##0.00") }}{% endif %}</td>
+        <td>{% if o.riskCategory is not null %}<span class="risk {{ o.riskCategory | lower }}">{{ o.riskCategory }}</span>{% endif %}</td>
+        <td>{{ o.createdAt }}</td>
+        <td><a href="/orders/{{ o.id }}/status">status</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

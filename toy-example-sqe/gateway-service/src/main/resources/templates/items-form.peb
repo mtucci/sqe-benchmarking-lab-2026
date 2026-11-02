@@ -1,0 +1,19 @@
+<table class="items">
+    <thead><tr><th>Product</th><th>Quantity</th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+    {% set selected = form["sku" ~ row] %}
+    <tr>
+        <td>
+            <select name="sku{{ row }}">
+                <option value="">&mdash;</option>
+                {% for p in products %}
+                <option value="{{ p.sku }}" {% if selected == p.sku %}selected{% endif %}>{{ p.sku }} &middot; {{ p.name }} ({{ p.unitPrice | numberformat("#,##0.00") }})</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="number" name="qty{{ row }}" min="1" value="{{ form["qty" ~ row] | default(1) }}"></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>

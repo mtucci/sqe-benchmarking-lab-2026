@@ -1,0 +1,61 @@
+{% extends "layout" %}
+{% block title %}Order #{{ details.order.id }}{% endblock %}
+{% block content %}
+{% set order = details.order %}
+{% set profile = details.customerProfile %}
+<h1>Order #{{ order.id }} <span class="status {{ order.status | lower }}">{{ order.status }}</span></h1>
+<p><a href="/orders/{{ order.id }}/status">Status page</a> &middot; <a href="/orders">Back to list</a></p>
+
+<div class="cards">
+    <section class="card">
+        <h2>Order</h2>
+        <dl>
+            <dt>Customer</dt><dd>{{ order.customerId }}</dd>
+            <dt>Shipping address</dt><dd>{{ order.shippingAddress }}</dd>
+            <dt>Shipping country</dt><dd>{{ order.shippingCountry }}</dd>
+            <dt>Total amount</dt><dd>{% if order.totalAmount is not null %}{{ order.totalAmount | numberformat("#,##0.00") }}{% else %}<span class="muted">priced during risk analysis</span>{% endif %}</dd>
+            <dt>Created (UTC)</dt><dd>{{ order.createdAt }}</dd>
+            {% if order.statusReason is not null %}<dt>Status reason</dt><dd>{{ order.statusReason }}</dd>{% endif %}
+        </dl>
+    </section>
+    <section class="card">
+        <h2>Risk result</h2>
+        {% if order.riskResult is not null %}
+        <dl>
+            <dt>Score</dt><dd>{{ order.riskResult.score | numberformat("0.00") }} / 100</dd>
+            <dt>Category</dt><dd><span class="risk {{ order.riskResult.category | lower }}">{{ order.riskResult.category }}</span></dd>
+            <dt>Rule count</dt><dd>{{ order.riskResult.ruleCount }}</dd>
+            <dt>Evaluated (UTC)</dt><dd>{{ order.riskResult.evaluatedAt }}</dd>
+        </dl>
+        {% else %}
+        <p class="muted">No risk result yet.</p>
+        {% endif %}
+    </section>
+    <section class="card">
+        <h2>Customer profile</h2>
+        <dl>
+            <dt>Loyalty tier</dt><dd>{{ profile.loyaltyTier }}</dd>
+            <dt>Home country</dt><dd>{{ profile.homeCountry }}</dd>
+            <dt>Account age</dt><dd>{{ profile.accountAgeDays }} days</dd>
+            <dt>Previous orders</dt><dd>{{ profile.previousOrders }}</dd>
+            <dt>Chargebacks</dt><dd>{{ profile.chargebacks }}</dd>
+            <dt>Average order value</dt><dd>{{ profile.averageOrderValue | numberformat("#,##0.00") }}</dd>
+        </dl>
+    </section>
+</div>
+
+<h2>Items</h2>
+<table>
+    <thead><tr><th>#</th><th>SKU</th><th>Quantity</th><th>Unit price (snapshot)</th></tr></thead>
+    <tbody>
+    {% for item in order.items %}
+    <tr>
+        <td>{{ item.lineNo }}</td>
+        <td>{{ item.sku }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{% if item.unitPrice is not null %}{{ item.unitPrice | numberformat("#,##0.00") }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

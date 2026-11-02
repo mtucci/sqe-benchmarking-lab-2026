@@ -1,0 +1,27 @@
+{% extends "layout" %}
+{% block content %}
+<h1>Order risk analysis</h1>
+<p>This back-office accepts customer orders and computes a deterministic risk score before fulfilment.</p>
+
+<div class="cards">
+    <section class="card">
+        <h2>Use Case 1 &middot; View order details</h2>
+        <p class="tag sync">synchronous</p>
+        <p>Open an order from the <a href="/orders">order list</a>. The order is read from the order service,
+            which also fetches the customer profile from the pricing/profile service.</p>
+    </section>
+    <section class="card">
+        <h2>Use Case 2 &middot; Price quote</h2>
+        <p class="tag sync">synchronous</p>
+        <p><a href="/quote">Request a quote</a> for a customer: current price snapshots plus a loyalty discount
+            based on the customer's order history.</p>
+    </section>
+    <section class="card">
+        <h2>Use Case 3 &middot; Submit order for risk analysis</h2>
+        <p class="tag async">asynchronous (RabbitMQ)</p>
+        <p><a href="/orders/new">Submit an order</a>. The request returns immediately; the risk score is computed
+            in the background. Follow the status page: SUBMITTED &rarr; QUEUED &rarr; PROCESSING &rarr;
+            COMPLETED / FAILED / REJECTED.</p>
+    </section>
+</div>
+{% endblock %}

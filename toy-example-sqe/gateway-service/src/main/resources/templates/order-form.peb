@@ -1,0 +1,15 @@
+{% extends "layout" %}
+{% block title %}Submit order{% endblock %}
+{% block content %}
+<h1>Submit order for risk analysis</h1>
+<p>Use Case 3 (asynchronous). The order is stored and a message is published to RabbitMQ; you are redirected
+    to the status page immediately, before the analysis has finished.</p>
+{% if error is not null %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/orders">
+    <label>Customer id <input name="customerId" value="{{ form.customerId | default("C-1001") }}" required></label>
+    <label>Shipping address <input name="shippingAddress" value="{{ form.shippingAddress | default("Main Street 1, Berlin") }}" required></label>
+    <label>Shipping country <input name="shippingCountry" value="{{ form.shippingCountry | default("DE") }}" maxlength="2" required></label>
+    {% include "items-form" %}
+    <button type="submit">Submit order</button>
+</form>
+{% endblock %}

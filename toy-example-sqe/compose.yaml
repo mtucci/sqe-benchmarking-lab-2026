@@ -1,0 +1,202 @@
+# Complete runtime environment:  docker compose up --build
+#
+#   Web GUI ............ http://localhost:8080
+#   Grafana (traces) ... http://localhost:3000
+#   RabbitMQ UI ........ http://localhost:15672   (guest / guest)
+#
+# k6 benchmark (on demand, profile "performance"):
+#   docker compose --profile performance run --rm k6 run /scripts/example.js
+#
+# Every application setting of application.properties can be overridden here with an
+# environment variable: processing.workerThreads -> PROCESSING_WORKER_THREADS.
+
+name: order-risk
+
+services:
+
+  # ------------------------------------------------------------------ application services
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    image: order-risk/gateway-service:1.0.0
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_MAX_THREADS: "32"
+      ORDER_BASE_URL: http://order-service:8081
+      WORKFLOW_BASE_URL: http://workflow-service:8082
+      PRICING_BASE_URL: http://pricing-profile-service:8084
+      TRACING_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      order-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+      pricing-profile-service:
+        condition: service_healthy
+    mem_limit: 384m
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    image: order-risk/order-service:1.0.0
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_MAX_THREADS: "32"
+      ORDER_JDBC_URL: jdbc:h2:file:/data/orders
+      ORDER_DATABASE_POOL_SIZE: "4"
+      ORDER_DATABASE_TIMEOUT_MS: "2000"
+      PRICING_BASE_URL: http://pricing-profile-service:8084
+      RISK_BASE_URL: http://risk-processing-service:8083
+      TRACING_OTLP_ENDPOINT: http://otel-collector:4318
+    volumes:
+      - order-data:/data
+    depends_on:
+      pricing-profile-service:
+        condition: service_healthy
+    mem_limit: 384m
+    restart: unless-stopped
+
+  workflow-service:
+    build:
+      context: .
+      dockerfile: workflow-service/Dockerfile
+    image: order-risk/workflow-service:1.0.0
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_MAX_THREADS: "32"
+      RABBITMQ_HOST: rabbitmq
+      ORDER_BASE_URL: http://order-service:8081
+      PRICING_BASE_URL: http://pricing-profile-service:8084
+      RISK_BASE_URL: http://risk-processing-service:8083
+      TRACING_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      pricing-profile-service:
+        condition: service_healthy
+      risk-processing-service:
+        condition: service_healthy
+    mem_limit: 384m
+    restart: unless-stopped
+
+  risk-processing-service:
+    build:
+      context: .
+      dockerfile: risk-processing-service/Dockerfile
+    image: order-risk/risk-processing-service:1.0.0
+    ports:
+      - "8083:8083"
+    environment:
+      PROCESSING_WORKER_THREADS: "2"
+      PROCESSING_QUEUE_CAPACITY: "8"
+      PROCESSING_PREFETCH_COUNT: "10"
+      PROCESSING_RULE_COUNT: "500000"
+      RABBITMQ_HOST: rabbitmq
+      ORDER_BASE_URL: http://order-service:8081
+      PRICING_BASE_URL: http://pricing-profile-service:8084
+      TRACING_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      pricing-profile-service:
+        condition: service_healthy
+    mem_limit: 384m
+    restart: unless-stopped
+
+  pricing-profile-service:
+    build:
+      context: .
+      dockerfile: pricing-profile-service/Dockerfile
+    image: order-risk/pricing-profile-service:1.0.0
+    ports:
+      - "8084:8084"
+    environment:
+      PRICING_THREAD_POOL_SIZE: "2"
+      PRICING_QUEUE_CAPACITY: "50"
+      PRICING_PROCESSING_DELAY_MS: "20"
+      TRACING_OTLP_ENDPOINT: http://otel-collector:4318
+    depends_on:
+      - otel-collector
+    mem_limit: 384m
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ infrastructure
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # management UI (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 512m
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP (used by the services)
+    depends_on:
+      - tempo
+    mem_limit: 256m
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "3200:3200"     # Tempo HTTP API (queried by Grafana)
+    mem_limit: 512m
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - tempo
+    mem_limit: 256m
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------ on-demand benchmark
+
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["performance"]
+    volumes:
+      - ./performance/k6:/scripts:ro
+    environment:
+      BASE_URL: http://gateway-service:8080
+
+volumes:
+  order-data:

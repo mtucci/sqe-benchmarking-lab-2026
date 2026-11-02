@@ -1,0 +1,37 @@
+@startuml
+ title One risk function, three benchmark levels
+ hide footbox
+ skinparam sequenceMessageAlign center
+
+ participant "JMH benchmark\n(forked JVM)" as JMH
+ participant k6
+ participant Gateway
+ participant Workflow
+ participant "Pricing + order services\n(data lookups)" as Data
+ participant "Risk service\n(service JVM)" as Risk
+
+ == Microbenchmark: one timed invocation ==
+ JMH -> JMH: **RiskScorer.evaluate(input, rules, implementation)**
+
+ == Component benchmark: one timed HTTP request ==
+ k6 -> Risk: POST /risk-evaluations
+ Risk -> Risk: **RiskScorer.evaluate(input, rules, implementation)**
+ Risk --> k6: Risk result
+
+ == End-to-end benchmark: one timed gateway request ==
+ k6 -> Gateway: POST /api/risk-previews
+ Gateway -> Workflow: POST /risk-previews
+ Workflow -> Data: Read prices, order history\nand customer profile
+ Data --> Workflow: Quote data and profile
+ Workflow -> Risk: POST /risk-evaluations
+ Risk -> Risk: **RiskScorer.evaluate(input, rules, implementation)**
+ Risk --> Workflow: Risk result
+ Workflow --> Gateway: Quote + risk evaluation
+ Gateway --> k6: Quote + risk evaluation
+
+ legend bottom
+   Same function code, order and rule collection at all three levels.
+   ruleCount selects the catalog size; its country index is prepared before timing.
+   implementation = baseline or optimized
+ endlegend
+@enduml

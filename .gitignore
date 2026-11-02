@@ -1,0 +1,22 @@
+# Build outputs and caches
+**/target/
+**/__pycache__/
+*.py[cod]
+.venv/
+
+# Experiment outputs and local application data
+benchmarking/results/
+benchmarking/analysis/
+benchmarking/data/
+toy-example-sqe/data/
+*.log
+
+# Local configuration and editor files
+.env
+.env.*
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
